@@ -1,0 +1,20 @@
+{
+  "name": "amex-ui",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": ["apps/api", "apps/web"],
+  "engines": { "node": ">=22.13 <23" },
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"npm run dev -w apps/api\" \"npm run dev -w apps/web\"",
+    "build": "npm run build -w apps/api && npm run build -w apps/web",
+    "typecheck": "npm run typecheck -w apps/api && npm run typecheck -w apps/web",
+    "test": "npm run test -w apps/api && npm run test -w apps/web",
+    "db:migrate": "npm run db:migrate -w apps/api"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "concurrently": "9.2.4",
+    "typescript": "5.9.3",
+    "vitest": "5.0.2"
+  }
+}

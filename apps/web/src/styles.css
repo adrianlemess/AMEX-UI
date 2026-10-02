@@ -1,0 +1,46 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #193239; background: #f3f6f3; --border: #d5e0df; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, select { font: inherit; }
+button, select, summary { cursor: pointer; }
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid #d49a2a; outline-offset: 2px; }
+.shell { max-width: 1180px; margin: 0 auto; padding: 1rem; }
+.shell-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.6rem 0 1.2rem; }
+.shell-header h1 { font-size: 1.15rem; margin: 0; }
+.shell-header button { border-radius: 0.65rem; border: 1px solid #bfd0cf; background: #fff; padding: 0.55rem 0.8rem; }
+.content-card { background: white; border: 1px solid var(--border); border-radius: 1.1rem; padding: clamp(1rem, 3vw, 2rem); box-shadow: 0 8px 30px #1932390a; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.13em; color: #205b69; font-size: 0.72rem; font-weight: 700; }
+.muted { color: #526b71; }
+.notice { background: #eef4ed; padding: 0.8rem 1rem; border-left: 3px solid #569276; border-radius: 0.45rem; }
+.alert { padding: 0.8rem 1rem; background: #fff0eb; border-left: 3px solid #b75b40; border-radius: 0.45rem; }
+.primary-button, .secondary-button { min-height: 2.55rem; border-radius: 0.65rem; padding: 0.55rem 0.9rem; font-weight: 650; }
+.primary-button { border: 1px solid #13433b; background: #13433b; color: white; }
+.secondary-button { border: 1px solid #b7cfca; background: white; color: #13433b; }
+.field { display: grid; gap: 0.35rem; margin: 0.75rem 0; }
+.field input, .field select, .amex-transaction-detail select { min-height: 2.6rem; border: 1px solid #b7c9c7; border-radius: 0.6rem; padding: 0.5rem; max-width: 100%; }
+.configuration-section { border: 1px solid var(--border); border-radius: 0.85rem; padding: 0.75rem 1rem; }
+.configuration-section > summary { font-weight: 650; }
+.configuration-section-content { padding-top: 0.8rem; }
+.amex-page { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 1rem; }
+.amex-visual-card { min-width: 0; padding: 1rem; border: 1px solid var(--border); border-radius: 0.85rem; }
+.amex-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.8rem; }
+.amex-kpis > div { display: grid; gap: 0.4rem; padding: 1rem; border: 1px solid var(--border); border-radius: 0.8rem; }
+.amex-kpis strong { font-size: 1.3rem; }
+.amex-chart-wrap { max-width: 100%; overflow-x: auto; }
+.amex-bars { list-style: none; padding: 0; display: grid; gap: 0.85rem; }
+.amex-bar-label { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+.amex-bar-track { height: 0.6rem; background: #dae5e8; border-radius: 1rem; overflow: hidden; }
+.amex-bar-track span { display: block; height: 100%; background: #246d78; border-radius: 1rem; }
+.amex-transaction-list { display: grid; gap: 0.5rem; }
+.amex-transaction-list details { border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.7rem; min-width: 0; }
+.amex-transaction-list summary { display: flex; justify-content: space-between; gap: 1rem; }
+.amex-transaction-list summary span { overflow-wrap: anywhere; }
+.amex-transaction-detail { padding: 0.7rem 0; overflow-wrap: anywhere; display: grid; gap: 0.35rem; }
+.amex-transaction-detail label { display: grid; gap: 0.35rem; max-width: 20rem; }
+.auth-card { max-width: 440px; margin: 6vh auto; }
+.auth-card h2 { margin: 0; }
+.auth-card form { display: grid; gap: 0.8rem; }
+.auth-card .field { margin: 0; }
+.auth-switch { border: 0; background: transparent; color: #205b69; text-decoration: underline; padding: 0.5rem 0; }
+@media (max-width: 650px) { .shell { padding: 0.5rem; } .shell-header { padding: 0.7rem 0.5rem; } }
