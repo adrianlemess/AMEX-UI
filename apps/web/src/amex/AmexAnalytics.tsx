@@ -165,6 +165,18 @@ type ClassificationStatus = {
 type View = 'overview' | 'transactions' | 'analytics' | 'merchants' | 'recurring' | 'alerts';
 type Card = { id: string; label: string; last4: string };
 
+function CardRegistration({ busy, onRegister }: { busy: boolean; onRegister: (event: FormEvent<HTMLFormElement>) => void }) {
+  return <form className="amex-card-form" onSubmit={onRegister}>
+    <label className="field">Card name
+      <input name="cardLabel" maxLength={40} placeholder="My card" autoComplete="off" required />
+    </label>
+    <label className="field">Last four digits only
+      <input name="cardLast4" inputMode="numeric" pattern="[0-9]{4}" minLength={4} maxLength={4} placeholder="1234" autoComplete="off" required />
+    </label>
+    <button type="submit" className="primary-button" disabled={busy}>Add card</button>
+  </form>;
+}
+
 const money = (cents: number) =>
   new Intl.NumberFormat('en-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 const shortDate = (date: string) => {
@@ -353,6 +365,7 @@ export function AmexAnalytics({ csrfToken }: { csrfToken: string }) {
   const [range, setRange] = useState(() => presetRange('current', cycleKey(today())));
   const [availableCycles, setAvailableCycles] = useState<string[] | null>(null);
   const [cards, setCards] = useState<Card[] | null>(null);
+  const [setupOpen, setSetupOpen] = useState<boolean | null>(null);
   const [cardLast4, setCardLast4] = useState('');
   const [merchantFilter, setMerchantFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -428,7 +441,7 @@ export function AmexAnalytics({ csrfToken }: { csrfToken: string }) {
   useEffect(() => {
     let active = true;
     api<{ cards: Card[] }>('/api/amex/cards', csrfToken)
-      .then((result) => { if (active) setCards(result.cards); })
+      .then((result) => { if (active) { setCards(result.cards); setSetupOpen((current) => current ?? result.cards.length === 0); } })
       .catch(() => { if (active) setError('Could not load your cards.'); });
     return () => { active = false; };
   }, [csrfToken, revision]);
@@ -553,6 +566,27 @@ export function AmexAnalytics({ csrfToken }: { csrfToken: string }) {
       setBusyLabel(null);
     }
   }
+  function registerCard(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const label = (form.elements.namedItem('cardLabel') as HTMLInputElement).value.trim();
+    const last4 = (form.elements.namedItem('cardLast4') as HTMLInputElement).value;
+    void action(async () => {
+      await api('/api/amex/cards', csrfToken, { label, last4 });
+      form.reset();
+      if (cards?.length) setSetupOpen(false);
+      setMessage(`Card ending ${last4} added.`);
+    });
+  }
+  function renameCard(card: Card, event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const label = ((event.currentTarget.elements.namedItem('label') as HTMLInputElement).value).trim();
+    if (label === card.label) return;
+    void action(async () => {
+      await api(`/api/amex/cards/${card.id}`, csrfToken, { label }, 'PUT');
+      setMessage(`Card ending ${card.last4} renamed.`);
+    });
+  }
   const drill = (field: 'merchant' | 'category', name: string) => {
     setMerchantFilter('');
     setCategoryFilter('');
@@ -592,6 +626,26 @@ export function AmexAnalytics({ csrfToken }: { csrfToken: string }) {
     setMinimum(''); setMaximum(''); setRecurringFilter('all'); setPage(1);
   };
   const setScreen = (next: View) => { if (view === 'transactions' && next !== 'transactions') clearTransactionFilters(); setView(next); };
+  if (cards === null) return <section className="content-card amex-card-onboarding" aria-live="polite">
+    <h2>Loading your cards…</h2>
+    {error && <><p role="alert" className="alert">{error}</p><button type="button" className="secondary-button" onClick={refresh}>Try again</button></>}
+  </section>;
+  if (setupOpen && cards) return <section className="content-card amex-card-onboarding" aria-labelledby="card-onboarding-title">
+    <p className="eyebrow">AMEX · step 1 of 2</p>
+    <h2 id="card-onboarding-title">Set up your cards</h2>
+    <p>Give each card a name you recognize. Enter only the last four digits from the CSV’s “Konto #” column. Your full card number and cardholder names are never saved.</p>
+    {error && <p role="alert" className="alert">{error}</p>}
+    {message && <p role="status" className="notice">{message}</p>}
+    <ol className="amex-onboarding-steps">
+      <li><strong>First card</strong>{cards[0] ? <span>{cards[0].label} ····{cards[0].last4} ✓</span> : <span>Not registered yet</span>}</li>
+      <li><strong>Second card</strong>{cards[1] ? <span>{cards[1].label} ····{cards[1].last4} ✓</span> : <span>Add it now or later</span>}</li>
+    </ol>
+    <CardRegistration busy={busy} onRegister={registerCard} />
+    {cards.length > 0 && <button className="secondary-button" type="button" onClick={() => setSetupOpen(false)}>
+      Continue to dashboard{cards.length === 1 ? ' with one card' : ''}
+    </button>}
+    <p className="muted">After setup, import your private AMEX CSV. Choose either card or both together at any time.</p>
+  </section>;
   return (
     <section className="content-card amex-page amex-analytics" aria-labelledby="amex-title">
       <p className="eyebrow">AMEX · EUR activity</p>
@@ -611,34 +665,32 @@ export function AmexAnalytics({ csrfToken }: { csrfToken: string }) {
           {message}
         </p>
       )}
-      <section className="amex-visual-card" aria-label="Card setup">
-        <h3>Your cards</h3>
-        {cards?.length === 0 && <p className="notice">Start here: give each card a name and enter only its last four digits. The AMEX CSV identifies cards by the ending of “Konto #”. No full account number or cardholder name is stored.</p>}
-        {cards === null ? <p>Loading cards…</p> : <>
-          <form className="amex-filters" onSubmit={(event) => {
-            event.preventDefault();
-            const form = event.currentTarget;
-            const label = (form.elements.namedItem('cardLabel') as HTMLInputElement).value.trim();
-            const last4 = (form.elements.namedItem('cardLast4') as HTMLInputElement).value;
-            void action(async () => {
-              await api('/api/amex/cards', csrfToken, { label, last4 });
-              form.reset();
-              setMessage(`Card ending ${last4} added.`);
-            });
-          }}>
-            <label className="field">Card name <input name="cardLabel" maxLength={40} placeholder="My card" required /></label>
-            <label className="field">Last four digits only <input name="cardLast4" inputMode="numeric" pattern="[0-9]{4}" minLength={4} maxLength={4} placeholder="1234" required /></label>
-            <button type="submit" className="secondary-button" disabled={busy}>Add card</button>
-          </form>
-          {cards.length > 0 && <p className="muted">Registered: {cards.map((card) => `${card.label} ····${card.last4}`).join(' · ')}. You can add the second card now or later.</p>}
-          <label className="field">Show spending for
-            <select value={cardLast4} onChange={(event) => { setCardLast4(event.target.value); setPage(1); setSelectedDay(null); }}>
-              <option value="">Both cards together (including unidentified rows)</option>
-              {cards.map((card) => <option key={card.id} value={card.last4}>{card.label} ····{card.last4}</option>)}
-            </select>
-          </label>
-          {cardLast4 && <p className="muted">Selected card: {cards.find((card) => card.last4 === cardLast4)?.label}. Alerts, import history, and merchant settings apply to the entire account.</p>}
-        </>}
+      <section className="amex-visual-card amex-card-selector" aria-label="Card selection">
+        <h3>Spending view</h3>
+        <p className="muted">Switch between cards or see your combined AMEX spending.</p>
+        <div className="amex-card-choices" role="group" aria-label="Show spending for">
+          <button type="button" className={cardLast4 === '' ? 'primary-button' : 'secondary-button'} aria-pressed={cardLast4 === ''} onClick={() => { setCardLast4(''); setPage(1); setSelectedDay(null); }}>
+            Both cards together
+          </button>
+          {cards?.map((card) => <button key={card.id} type="button" className={cardLast4 === card.last4 ? 'primary-button' : 'secondary-button'} aria-pressed={cardLast4 === card.last4}
+            onClick={() => { setCardLast4(card.last4); setPage(1); setSelectedDay(null); }}>
+            {card.label} ····{card.last4}
+          </button>)}
+        </div>
+        <p className="muted">{cardLast4 ? `Showing ${cards?.find((card) => card.last4 === cardLast4)?.label ?? 'selected card'} only.` : 'Showing both cards, including rows whose card could not be identified.'} Alerts, import history and merchant settings always cover the whole account.</p>
+        <details className="configuration-section">
+          <summary>Manage cards</summary>
+          <div className="configuration-section-content">
+            <CardRegistration busy={busy} onRegister={registerCard} />
+            {cards?.map((card) => <form key={`${card.id}:${card.label}`} className="amex-card-rename" onSubmit={(event) => renameCard(card, event)}>
+              <label className="field">Name for ····{card.last4}
+                <input name="label" defaultValue={card.label} maxLength={40} required />
+              </label>
+              <button className="secondary-button" type="submit" disabled={busy}>Save name</button>
+            </form>)}
+            <p className="muted">Card endings cannot be edited. If an import shows an unregistered ending, add it here before choosing its individual view.</p>
+          </div>
+        </details>
       </section>
       <details className="configuration-section" open={!data?.imports.length && !data?.transactionCount}>
         <summary>{t('amexImport')}</summary>

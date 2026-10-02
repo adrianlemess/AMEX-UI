@@ -35,6 +35,15 @@ it.skipIf(!process.env.TEST_DATABASE_URL)('signs up isolated accounts and import
       headers: { origin, cookie: owner.cookie, 'content-type': 'application/json', 'x-csrf-token': owner.csrf },
       payload: { label: 'Secondary', last4: '2004' } });
     expect(second.statusCode).toBe(201);
+    const cardId = card.json<{ id: string }>().id;
+    expect((await app.inject({ method: 'PUT', url: `/api/amex/cards/${cardId}`,
+      headers: { origin, cookie: friend.cookie, 'content-type': 'application/json', 'x-csrf-token': friend.csrf },
+      payload: { label: 'Not mine' } })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'PUT', url: `/api/amex/cards/${cardId}`,
+      headers: { origin, cookie: owner.cookie, 'content-type': 'application/json', 'x-csrf-token': owner.csrf },
+      payload: { label: 'My card' } })).statusCode).toBe(200);
+    expect((await app.inject({ url: '/api/amex/cards', headers: { cookie: owner.cookie } })).json())
+      .toMatchObject({ cards: [{ id: cardId, label: 'My card', last4: '1014' }, { label: 'Secondary', last4: '2004' }] });
     expect((await app.inject({ url: '/api/amex/cards', headers: { cookie: friend.cookie } })).json()).toEqual({ cards: [] });
     const csv = [
       'Datum,Beschreibung,Karteninhaber,Konto #,Betrag,Weitere Details,Erscheint auf Ihrer Abrechnung als,Adresse,Stadt,PLZ,Land,Betreff,Kategorie',
