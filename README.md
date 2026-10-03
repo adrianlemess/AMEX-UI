@@ -11,12 +11,25 @@ Standalone, self-hosted AMEX spending analytics. It includes a React web app, a 
 
 ## Fresh local setup
 
-1. Clone this repository, then run `npm ci` from its root.
-2. Copy `.env.example` to `.env`. Choose a **new, strong** `POSTGRES_PASSWORD`, and put the *same password* in `DATABASE_URL`. Do not reuse credentials from another project. The default Compose database is separate from other projects and binds to `127.0.0.1:5544`.
+1. Clone this repository, then run `npm ci` from its root. Use **npm**, not Yarn, with the committed `package-lock.json`.
+2. Copy `.env.example` to `.env` (`cp .env.example .env` on macOS/Linux/WSL, or `Copy-Item .env.example .env` in PowerShell). Choose a **new, strong** `POSTGRES_PASSWORD`, and put the *same password* in `DATABASE_URL`. Do not reuse credentials from another project. The default Compose database is separate from other projects and binds to `127.0.0.1:5544`.
 3. Start PostgreSQL: `docker compose up -d db`. Wait until `docker compose ps` reports the database healthy. If you use your own PostgreSQL server instead, create a **new empty database and user** and set `DATABASE_URL` to it. Migration intentionally refuses an existing shared database.
 4. Install the schema: `npm run db:migrate`. This is safe to re-run after installation; it does not import sample data.
-5. Start both servers: `npm run dev`. Visit **http://127.0.0.1:5173**. On Windows, run this from PowerShell with Node 22 on your PATH.
+5. Start both servers: `npm run dev`. Visit the address in `WEB_ORIGIN` (default **http://127.0.0.1:5173**). On Windows, run this from PowerShell with Node 22 on your PATH.
 6. Choose **Create an account**, enter a username (3–30 lowercase letters, digits or underscores; start with a letter) and a password of at least 12 characters, and sign in. Your new account starts empty. The first screen guides you through naming both cards using only the last four digits of each CSV account identifier. You can continue with one card and add the other later under **Manage cards**. Import your own CSV through the app; there is no sample household.
+
+On **macOS**, install Node.js 22 and Docker Desktop first, then use the same commands above in Terminal. On **WSL**, run the Node/npm and Docker commands in the same Linux environment; use a compatible Docker installation or a separate PostgreSQL database. The app and scripts use no Windows-only commands.
+
+### Port already in use
+
+If another project is using `5173` or `3001`, edit your local (gitignored) `.env` to set, for example:
+
+```dotenv
+WEB_ORIGIN=http://127.0.0.1:5174
+API_PORT=3002
+```
+
+Then run `npm run dev` again and visit **http://127.0.0.1:5174**. Vite now reads the web port and API proxy target directly from the root `.env`, just as the API does; no platform-specific environment command is necessary. Pick other free ports if these are also busy. Keep the host `127.0.0.1` for local development. Do not stop another application's servers unless you intend to.
 
 To stop the app, press Ctrl+C. `docker compose down` stops the database without deleting its volume. **Do not use `docker compose down -v` unless you deliberately want to erase your own data.**
 
@@ -26,7 +39,7 @@ Add `DEEPSEEK_API_KEY` to your local `.env` and restart the API. The key stays o
 
 ### Existing PostgreSQL instead of Docker
 
-Create a dedicated empty database, for example `amex`, with a dedicated user able to create tables in its schema. Set `DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/amex` in `.env`. Do **not** point this app at your household-finance database or another application's schema. To use a non-default Vite port, set `WEB_PORT` in the environment and match `WEB_ORIGIN` in `.env`. The API port is `API_PORT` (default 3001); the Vite dev server proxies `/api` to it.
+Create a dedicated empty database, for example `amex`, with a dedicated user able to create tables in its schema. Set `DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/amex` in `.env`. Do **not** point this app at your household-finance database or another application's schema. Set `WEB_ORIGIN` in `.env` for the Vite development port; `API_PORT` (default 3001) also sets the Vite `/api` proxy target.
 
 ## What is imported
 
